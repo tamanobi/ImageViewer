@@ -5,22 +5,29 @@ var remote = require('remote');
 var dialog = remote.require('dialog');
 var browserWindow = remote.require('browser-window');
 
+function getDirectoryFileNames(pattern, directory) {
+  var fileNames = glob.sync(pattern, {cwd: directory});
+  fileNames.forEach(function(item, index, array) {
+    array[index] = [directory, '/', unescape(item)].join('');
+    console.log(array[index]);
+  });
+  return fileNames;
+}
+
 function ViewerManager(directory) {
   this.fileNames = [];
   this.currentPosition = 0;
   this.lazyload = 10;
-  this.fileNames = glob.sync('*.{png,gif,jpg,jpeg}', {cwd: directory});
-  this.fileNames.forEach(function(item, index, array) {
-    array[index] = [directory, '/', item].join('');
-  });
+  this.pattern = '*.{png,gif,jpg,jpeg,web,mp4}';
+  this.fileNames = getDirectoryFileNames(this.pattern, directory);
+  var vmb = new ViewElementBuilder(this.fileNames);
+  this.viewElements = vmb.build();
 }
 ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index > this.size()) {
     throw new RangeError('viewerManagerの領域外エラー');
   } else {
-    var id = ['imgview', index].join('');
-    var target = document.getElementById(id);
-    target.style.display = 'block';
+    this.viewElements[index].setVisible();
   }
 };
 ViewerManager.prototype.size = function() {
@@ -39,19 +46,15 @@ ViewerManager.prototype.goPrev = function() {
   this.setVisible(this.currentPosition);
 };
 ViewerManager.prototype.setAllHidden = function() {
+  var _this = this;
   this.fileNames.forEach(function(item, index) {
-    var img = document.getElementById(['imgview', index].join(''));
-    img.style.display = 'none';
+    _this.viewElements[index].setHidden();
   });
 };
 ViewerManager.prototype.display = function() {
   var a = document.getElementById('imgview');
-  var width = window.innerWidth;
-  var vmb = new ViewElementBuilder(this.fileNames);
-  var imgs = vmb.build();
-  console.log(imgs);
-  imgs.forEach(function(item) {
-    a.appendChild(item);
+  this.viewElements.forEach(function(item) {
+    a.appendChild(item.get());
   });
   this.setAllHidden();
   this.setVisible(this.currentPosition);
@@ -71,10 +74,12 @@ ViewerManager.prototype.click = function(e, vm) {
     vm.goNext();
   }
 };
+ViewerManager.prototype.resize = function(e, vm) {
+  vm.viewElements[this.currentPosition].touch();
+};
 function ViewElement(tagname, src, index) {
   this.element = document.createElement(tagname);
   this.element.setAttribute('src', src);
-  this.element.setAttribute('data-index', index);
   this.element.setAttribute('id', ['imgview', index].join(''));
   this.touch();
 }
@@ -84,27 +89,12 @@ ViewElement.prototype.touch = function() {
   image.onload = function() {
     var w = image.width;
     var h = image.height;
-    var newSize = sizeFill([window.innerWidth, window.innerHeight], getAspect(w, h));
+    var aspect = getAspect(w, h);
+    var newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
     _this.setWidth(newSize[0]);
   };
   image.src = this.element.getAttribute('src');
 };
-function getAspect(w, h) {
-  return w / h;
-}
-function sizeFill(size, imageAspect) {
-  var width;
-  var height;
-  var aspect1 = getAspect(size[0], size[1]);
-  if (aspect1 >= imageAspect) {
-    width = size[1] * imageAspect;
-    height = size[1];
-  } else {
-    width = size[0];
-    height = size[1] / imageAspect;
-  }
-  return [width, height];
-}
 ViewElement.prototype.get = function() {
   return this.element;
 };
@@ -121,17 +111,57 @@ ViewElement.prototype.setHeight = function(val) {
   this.element.setAttribute('height', val);
 };
 
+/**
+ * アスペクト比を求める
+ * @param {integer} w width
+ * @param {integer} h width
+ * @return {integer} w / h
+ */
+function getAspect(w, h) {
+  return w / h;
+}
+
+/**
+ * imageAspectを固定してrectSizeに内接するようなサイズを返す
+ * @param {size} rectSize [widht, height]で与えられる配列
+ * @param {float} imageAspect アスペクト比
+ * @return {size} 内接するサイズ([width, height])
+ */
+function getSizeFillRect(rectSize, imageAspect) {
+  var width;
+  var height;
+  var rectAspect = getAspect(rectSize[0], rectSize[1]);
+  if (rectAspect >= imageAspect) {
+    width = rectSize[1] * imageAspect;
+    height = rectSize[1];
+  } else {
+    width = rectSize[0];
+    height = rectSize[1] / imageAspect;
+  }
+  return [width, height];
+}
+
 function ViewElementBuilder(names) {
   this.names = names;
 }
-ViewElementBuilder.prototype.judge = function() {
+ViewElementBuilder.prototype.getTagName = function(name) {
   // ファイル名から適切なタグを選出する
+  var images = /\.(png|gif|jpg|jpeg)$/i;
+  var video = /\.(webm|mp4)$/i;
+  if (name.match(images)) {
+    return 'img';
+  }
+  if (name.match(video)) {
+    return 'video';
+  }
 };
 ViewElementBuilder.prototype.build = function() {
+  var _this = this;
   var elements = [];
   this.names.forEach(function(item, index) {
-    var vm = new ViewElement('img', item, index);
-    elements.push(vm.get());
+    var tagname = _this.getTagName(item);
+    var vm = new ViewElement(tagname, item, index);
+    elements.push(vm);
   });
   return elements;
 };
@@ -152,6 +182,9 @@ function imgView() {
             document.addEventListener('click', function(e) {
               vm.click(e, vm);
             }, false);
+            setInterval(function() {
+              vm.resize(undefined, vm);
+            }, 100);
           }
         );
       }
