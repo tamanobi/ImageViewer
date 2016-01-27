@@ -78,22 +78,34 @@ ViewerManager.prototype.resize = function(e, vm) {
   vm.viewElements[this.currentPosition].touch();
 };
 function ViewElement(tagname, src, index) {
+  this.tagname = tagname;
   this.element = document.createElement(tagname);
   this.element.setAttribute('src', src);
   this.element.setAttribute('id', ['imgview', index].join(''));
+  if (this.tagname == 'video') {
+    this.element.controls = true;
+  }
   this.touch();
 }
 ViewElement.prototype.touch = function() {
-  var image = new Image();
-  var _this = this;
-  image.onload = function() {
-    var w = image.width;
-    var h = image.height;
+  if (this.tagname == 'img') {
+    var image = new Image();
+    var _this = this;
+    image.onload = function() {
+      var w = image.width;
+      var h = image.height;
+      var aspect = getAspect(w, h);
+      var newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
+      _this.setWidth(newSize[0]);
+    };
+    image.src = this.element.getAttribute('src');
+  } else {
+    var w = this.element.videoWidth;
+    var h = this.element.videoHeigh;
     var aspect = getAspect(w, h);
     var newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
-    _this.setWidth(newSize[0]);
-  };
-  image.src = this.element.getAttribute('src');
+    this.setWidth(newSize[0]);
+  }
 };
 ViewElement.prototype.get = function() {
   return this.element;
@@ -106,9 +118,11 @@ ViewElement.prototype.setHidden = function() {
 };
 ViewElement.prototype.setWidth = function(val) {
   this.element.setAttribute('width', val);
+  this.element.style.width = val;
 };
 ViewElement.prototype.setHeight = function(val) {
   this.element.setAttribute('height', val);
+  this.element.style.width = val;
 };
 
 /**
