@@ -22,6 +22,7 @@ function ViewerManager(directory) {
   this.fileNames = getDirectoryFileNames(this.pattern, directory);
   var vmb = new ViewElementBuilder(this.fileNames);
   this.viewElements = vmb.build();
+  console.log(this.viewElements);
 }
 ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index > this.size()) {
@@ -82,28 +83,27 @@ function ViewElement(tagname, src, index) {
   this.element = document.createElement(tagname);
   this.element.setAttribute('src', src);
   this.element.setAttribute('id', ['imgview', index].join(''));
-  if (this.tagname == 'video') {
+  if (this.tagname === 'video') {
     this.element.controls = true;
   }
   this.touch();
 }
 ViewElement.prototype.touch = function() {
-  if (this.tagname == 'img') {
-    var image = new Image();
-    var _this = this;
-    image.onload = function() {
-      var w = image.width;
-      var h = image.height;
-      var aspect = getAspect(w, h);
-      var newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
-      _this.setWidth(newSize[0]);
-    };
-    image.src = this.element.getAttribute('src');
+  var w;
+  var h;
+  var aspect;
+  var newSize;
+  if (this.tagname === 'img') {
+    w = this.element.naturalWidth;
+    h = this.element.naturalHeight;
+    aspect = getAspect(w, h);
+    newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
+    this.setWidth(newSize[0]);
   } else {
-    var w = this.element.videoWidth;
-    var h = this.element.videoHeigh;
-    var aspect = getAspect(w, h);
-    var newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
+    w = this.element.videoWidth;
+    h = this.element.videoHeigh;
+    aspect = getAspect(w, h);
+    newSize = getSizeFillRect([window.innerWidth, window.innerHeight], aspect);
     this.setWidth(newSize[0]);
   }
 };
