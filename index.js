@@ -19,7 +19,8 @@ function ViewerManager(directory, id) {
   this.statusId = 'status';
   this.id = id;
   this.fileNames = [];
-  this.currentPosition = 0;
+  // this.currentPosition = 0;
+  this.currentPosition = 820;
   this.lazyload = 10;
   this.pattern = '*.{png,gif,jpg,jpeg,web,mp4}';
   this.fileNames = getDirectoryFileNames(this.pattern, directory);
@@ -49,8 +50,8 @@ ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index > this.size()) {
     throw new RangeError('viewerManagerの領域外エラー');
   } else {
-    this.viewElements[index].setVisible();
     this.load();
+    this.viewElements[index].setVisible();
     this.updateStatus();
   }
 };
@@ -69,10 +70,22 @@ ViewerManager.prototype.goPrev = function() {
   this.currentPosition = Math.max(0, this.currentPosition);
   this.setVisible(this.currentPosition);
 };
+ViewerManager.prototype.isInRangeLoaded = function(index) {
+  var minIndex = this.currentPosition - this.lazyload;
+  var maxIndex = this.currentPosition + this.lazyload;
+  if (minIndex <= index && index <= maxIndex) {
+    return true;
+  }
+  return false;
+};
 ViewerManager.prototype.setAllHidden = function() {
   var _this = this;
   this.fileNames.forEach(function(item, index) {
-    _this.viewElements[index].setHidden();
+    if (_this.isInRangeLoaded(index)) {
+      _this.viewElements[index].setInvisible();
+    } else {
+      _this.viewElements[index].setHidden();
+    }
   });
 };
 ViewerManager.prototype.destroy = function() {
@@ -151,9 +164,18 @@ ViewElement.prototype.get = function() {
 };
 ViewElement.prototype.setVisible = function() {
   this.element.style.display = 'block';
+  this.load();
+};
+ViewElement.prototype.setInvisible = function() {
+  this.element.style.display = 'none';
+};
+ViewElement.prototype.unload = function() {
+  this.element.setAttribute('src', '');
+  this.loading = false;
 };
 ViewElement.prototype.setHidden = function() {
   this.element.style.display = 'none';
+  this.unload();
 };
 ViewElement.prototype.setWidth = function(val) {
   this.element.setAttribute('width', val);
