@@ -22,13 +22,27 @@ function ViewerManager(directory) {
   this.fileNames = getDirectoryFileNames(this.pattern, directory);
   var vmb = new ViewElementBuilder(this.fileNames);
   this.viewElements = vmb.build();
-  console.log(this.viewElements);
+  this.loadViewElement = function(index) {
+    if (index >= 0 && index < this.viewElements.length) {
+      this.viewElements[index].load();
+      this.viewElements[index].touch();
+    }
+  };
+  this.load = function() {
+    for (var i = 0; i < this.lazyload; i++) {
+      this.loadViewElement(this.currentPosition + i);
+      this.loadViewElement(this.currentPosition - i);
+    }
+  };
+  this.load();
+  // console.log(this.viewElements);
 }
 ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index > this.size()) {
     throw new RangeError('viewerManagerの領域外エラー');
   } else {
     this.viewElements[index].setVisible();
+    this.load();
   }
 };
 ViewerManager.prototype.size = function() {
@@ -80,14 +94,24 @@ ViewerManager.prototype.resize = function(e, vm) {
 };
 function ViewElement(tagname, src, index) {
   this.tagname = tagname;
+  this.src = src;
+  this.loading = false;
   this.element = document.createElement(tagname);
-  this.element.setAttribute('src', src);
   this.element.setAttribute('id', ['imgview', index].join(''));
   if (this.tagname === 'video') {
     this.element.controls = true;
   }
-  this.touch();
 }
+ViewElement.prototype.load = function() {
+  if (this.loading === false) {
+    this.element.setAttribute('src', this.src);
+    this.touch();
+    this.loading = true;
+  }
+};
+ViewElement.prototype.display = function() {
+  this.touch();
+};
 ViewElement.prototype.touch = function() {
   var w;
   var h;
