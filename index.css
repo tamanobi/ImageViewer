@@ -9,6 +9,7 @@ body {
 }
 
 #imgview {
+  position: relative;
   display: table-cell;
   margin: 0;
   padding: 0;
@@ -16,6 +17,11 @@ body {
   height: 100%;
   background-color:#ccc;
   vertical-align: middle;
+}
+#status {
+  position: absolute;
+  left: 0;
+  top: 0;
 }
 img, video{
   text-align: center;

@@ -37,7 +37,12 @@ function ViewerManager(directory, id) {
       this.loadViewElement(this.currentPosition - i);
     }
   };
+  this.updateStatus = function() {
+    var a = document.getElementById(this.statusId);
+    a.innerHTML = [this.currentPosition, '/', this.viewElements.length].join('');
+  };
   this.load();
+  this.updateStatus();
   // console.log(this.viewElements);
 }
 ViewerManager.prototype.setVisible = function(index) {
@@ -46,6 +51,7 @@ ViewerManager.prototype.setVisible = function(index) {
   } else {
     this.viewElements[index].setVisible();
     this.load();
+    this.updateStatus();
   }
 };
 ViewerManager.prototype.size = function() {
