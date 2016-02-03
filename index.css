@@ -5,11 +5,11 @@ html, body{
   height:100%;
 }
 body {
+  position: relative;
   display: table;
 }
 
 #imgview {
-  position: relative;
   display: table-cell;
   margin: 0;
   padding: 0;

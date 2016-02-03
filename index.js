@@ -229,20 +229,21 @@ function ImgView() {
           function(directory) {
             if (vm === undefined) {
               vm = new ViewerManager(directory, 'imgview');
+              document.addEventListener('keydown', function(e) {
+                vm.keydown(e, vm);
+              }, false);
+              document.addEventListener('click', function(e) {
+                vm.click(e, vm);
+              }, false);
+              setInterval(function() {
+                vm.resize(undefined, vm);
+              }, 100);
             } else {
               vm.destroy();
+              vm = undefined;
               vm = new ViewerManager(directory, 'imgview');
             }
             vm.display();
-            document.addEventListener('keydown', function(e) {
-              vm.keydown(e, vm);
-            }, false);
-            document.addEventListener('click', function(e) {
-              vm.click(e, vm);
-            }, false);
-            setInterval(function() {
-              vm.resize(undefined, vm);
-            }, 100);
           }
         );
       }
