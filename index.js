@@ -4,6 +4,7 @@ var glob = require('glob');
 var remote = require('remote');
 var dialog = remote.require('dialog');
 var browserWindow = remote.require('browser-window');
+var vm = undefined;
 
 function getDirectoryFileNames(pattern, directory) {
   var fileNames = glob.sync(pattern, {cwd: directory});
@@ -14,7 +15,9 @@ function getDirectoryFileNames(pattern, directory) {
   return fileNames;
 }
 
-function ViewerManager(directory) {
+function ViewerManager(directory, id) {
+  this.statusId = 'status';
+  this.id = id;
   this.fileNames = [];
   this.currentPosition = 0;
   this.lazyload = 10;
@@ -66,8 +69,14 @@ ViewerManager.prototype.setAllHidden = function() {
     _this.viewElements[index].setHidden();
   });
 };
+ViewerManager.prototype.destroy = function() {
+  var a = document.getElementById(this.id);
+  while (a.firstChild) {
+    a.removeChild(a.firstChild);
+  }
+};
 ViewerManager.prototype.display = function() {
-  var a = document.getElementById('imgview');
+  var a = document.getElementById(this.id);
   this.viewElements.forEach(function(item) {
     a.appendChild(item.get());
   });
@@ -204,7 +213,7 @@ ViewElementBuilder.prototype.build = function() {
   return elements;
 };
 
-function imgView() {
+function ImgView() {
   var focusedWindow = browserWindow.getFocusedWindow();
   dialog.showOpenDialog(
       focusedWindow,
@@ -212,7 +221,12 @@ function imgView() {
       function(directories) {
         directories.forEach(
           function(directory) {
-            var vm = new ViewerManager(directory);
+            if (vm === undefined) {
+              vm = new ViewerManager(directory, 'imgview');
+            } else {
+              vm.destroy();
+              vm = new ViewerManager(directory, 'imgview');
+            }
             vm.display();
             document.addEventListener('keydown', function(e) {
               vm.keydown(e, vm);

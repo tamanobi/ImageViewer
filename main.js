@@ -43,7 +43,7 @@ var template = [
         label: 'Open', accelerator: 'Command+O',
         click: function(item, focusedWindow) {
           if (focusedWindow) {
-            focusedWindow.webContents.executeJavaScript('imgView()');
+            focusedWindow.webContents.executeJavaScript('ImgView()');
           }
         }
       }
