@@ -67,7 +67,8 @@ var template = [
         label: 'Open', accelerator: 'Command+O',
         click: function(item, focusedWindow) {
           if (focusedWindow) {
-            focusedWindow.webContents.executeJavaScript('render()');
+            // focusedWindow.webContents.executeJavaScript('render()');
+            focusedWindow.webContents.executeJavaScript('ImgView()');
           }
         }
       },
