@@ -3,6 +3,8 @@
 var app = require('app');
 var BrowserWindow = require('browser-window');
 var Menu = require('menu');
+var ipc = require('ipc');
+var fs = require('fs');
 
 require('crash-reporter').start();
 
@@ -12,6 +14,21 @@ app.on('window-all-closed', function() {
   if (process.platform !== 'darwin') {
     app.quit();
   }
+});
+
+var directory = '';
+var page = 0;
+ipc.on('setDirectory', function(e, a) {
+  directory = a;
+});
+ipc.on('setPage', function(e, a) {
+  page = a;
+});
+ipc.on('getDirectory', function(e) {
+  e.sender.send('getDirectory-Reply', directory);
+});
+ipc.on('getPage', function(e) {
+  e.sender.send('getPage-Reply', String(page));
 });
 
 function openWindow(baseDir) {
@@ -31,6 +48,13 @@ var template = [
       {
         label: 'Quit', accelerator: 'Command+Q',
         click: function() {
+          fs.writeFile('./recent.log', ['directory:', directory, '\t', 'page:', page].join(''), function(err) {
+            if (err) {
+              console.log(err);
+            } else {
+              console.log('Done');
+            }
+          });
           app.quit();
         }
       }
@@ -43,7 +67,23 @@ var template = [
         label: 'Open', accelerator: 'Command+O',
         click: function(item, focusedWindow) {
           if (focusedWindow) {
-            focusedWindow.webContents.executeJavaScript('ImgView()');
+            focusedWindow.webContents.executeJavaScript('render()');
+          }
+        }
+      },
+      {
+        label: 'Most Recent', accelerator: 'Command+P',
+        click: function(item, focusedWindow) {
+          if (focusedWindow) {
+            var d;
+            fs.readFile('recent.log', 'utf-8', function(err, text) {
+              var l = text.split('\t');
+              d = l[0].split(':')[1];
+              var p = l[1].split(':')[1];
+              directory = d;
+              page = Number(p);
+              focusedWindow.webContents.executeJavaScript('render()');
+            });
           }
         }
       }

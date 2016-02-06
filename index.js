@@ -5,6 +5,7 @@ var remote = require('remote');
 var dialog = remote.require('dialog');
 var browserWindow = remote.require('browser-window');
 var vm = undefined;
+var ipc = require('ipc');
 
 function getDirectoryFileNames(pattern, directory) {
   var fileNames = glob.sync(pattern, {cwd: directory});
@@ -19,8 +20,7 @@ function ViewerManager(directory, id) {
   this.statusId = 'status';
   this.id = id;
   this.fileNames = [];
-  // this.currentPosition = 0;
-  this.currentPosition = 820;
+  this.currentPosition = 0;
   this.lazyload = 10;
   this.pattern = '*.{png,gif,jpg,jpeg,web,mp4}';
   this.fileNames = getDirectoryFileNames(this.pattern, directory);
@@ -33,6 +33,7 @@ function ViewerManager(directory, id) {
     }
   };
   this.load = function() {
+    ipc.send('setPage', this.currentPosition);
     for (var i = 0; i < this.lazyload; i++) {
       this.loadViewElement(this.currentPosition + i);
       this.loadViewElement(this.currentPosition - i);
@@ -40,11 +41,24 @@ function ViewerManager(directory, id) {
   };
   this.updateStatus = function() {
     var a = document.getElementById(this.statusId);
-    a.innerHTML = [this.currentPosition, '/', this.viewElements.length].join('');
+    a.setAttribute('style', ['width:', window.innerWidth, 'px'].join(''));
+    while (a.firstChild) {
+      a.removeChild(a.firstChild);
+    }
+    var b = document.createElement('div');
+    b.setAttribute('class', 'indicator');
+    var ratio = (1 - this.currentPosition / this.viewElements.length);
+    var width = ratio * window.innerWidth;
+    var height = '2px';
+    var styleProperty = ['width:', width, 'px;', 'height:', height, ';', 'background-color:', 'red', ';'].join('');
+    b.setAttribute('style', styleProperty);
+    a.appendChild(b);
+    var text = document.createElement('div');
+    text.innerHTML = [this.currentPosition, '/', this.viewElements.length].join('');
+    a.appendChild(text);
   };
   this.load();
   this.updateStatus();
-  // console.log(this.viewElements);
 }
 ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index > this.size()) {
@@ -241,33 +255,61 @@ ViewElementBuilder.prototype.build = function() {
   return elements;
 };
 
-function ImgView() {
-  var focusedWindow = browserWindow.getFocusedWindow();
-  dialog.showOpenDialog(
-      focusedWindow,
-      {properties: ['openDirectory']},
-      function(directories) {
-        directories.forEach(
-          function(directory) {
-            if (vm === undefined) {
-              vm = new ViewerManager(directory, 'imgview');
-              document.addEventListener('keydown', function(e) {
-                vm.keydown(e, vm);
-              }, false);
-              document.addEventListener('click', function(e) {
-                vm.click(e, vm);
-              }, false);
-              setInterval(function() {
-                vm.resize(undefined, vm);
-              }, 100);
-            } else {
-              vm.destroy();
-              vm = undefined;
-              vm = new ViewerManager(directory, 'imgview');
-            }
-            vm.display();
-          }
-        );
-      }
-  );
+var vm = undefined;
+function func(directory) {
+  if (vm === undefined) {
+    vm = new ViewerManager(directory, 'imgview');
+    ipc.send('setDirectory', directory);
+    document.addEventListener('keydown', function(e) {
+      vm.keydown(e, vm);
+    }, false);
+    document.addEventListener('click', function(e) {
+      vm.click(e, vm);
+    }, false);
+    setInterval(function() {
+      vm.resize(undefined, vm);
+    }, 100);
+  } else {
+    vm.destroy();
+    vm = undefined;
+    vm = new ViewerManager(directory, 'imgview');
+  }
+  vm.display();
+  return vm;
 }
+function ImgView(d) {
+  var focusedWindow = browserWindow.getFocusedWindow();
+  if (d === undefined) {
+    dialog.showOpenDialog(
+        focusedWindow,
+        {properties: ['openDirectory']},
+        function(directories) {
+          directories.forEach(
+            function(directory) {
+              func(directory);
+            }
+            );
+        }
+    );
+  } else {
+    func(d);
+  }
+}
+function render() {
+  ipc.send('getDirectory', 'ping');
+  ipc.send('getPage', 'ping');
+  var dir = '';
+  var page = 0;
+  ipc.on('getDirectory-Reply', function(arg) {
+    console.log(arg);
+    dir = arg;
+    if (dir !== '') {
+      ImgView(dir);
+    } else {
+      ImgView();
+    }
+  });
+  ipc.on('getPage-Reply', function(arg) {
+  });
+}
+
