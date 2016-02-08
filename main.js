@@ -30,6 +30,9 @@ ipc.on('getDirectory', function(e) {
 ipc.on('getPage', function(e) {
   e.sender.send('getPage-Reply', String(page));
 });
+ipc.on('getMostRecent', function(e) {
+  e.sender.send('getMostRecent-Reply', directory, String(page));
+});
 
 function openWindow(baseDir) {
   // ブラウザ(Chromium)の起動, 初期画面のロード

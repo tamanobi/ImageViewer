@@ -44,11 +44,14 @@ StatusBar.prototype.draw = function() {
 StatusBar.prototype.update = function() {
   this.draw();
 };
-function ViewerManager(directory, id) {
+function ViewerManager(directory, page, id) {
   this.statusId = 'status';
   this.id = id;
   this.fileNames = [];
   this.currentPosition = 0;
+  if (page !== undefined) {
+    this.currentPosition = page;
+  }
   this.lazyload = 10;
   this.pattern = '*.{png,gif,jpg,jpeg,web,mp4}';
   this.fileNames = getDirectoryFileNames(this.pattern, directory);
@@ -67,7 +70,7 @@ function ViewerManager(directory, id) {
   };
   this.loadViewElement = function(index) {
     index = this.loopPage(index);
-    if (index >= 0 && index < this.viewElements.length) {
+    if (index >= 0 && index < this.size()) {
       this.viewElements[index].load();
       this.viewElements[index].touch();
     }
@@ -93,7 +96,7 @@ ViewerManager.prototype.updateStatus = function() {
   this.statusbar.update();
 };
 ViewerManager.prototype.setVisible = function(index) {
-  if (index < 0 || index >= this.viewElements.length) {
+  if (index < 0 || index >= this.size()) {
     throw new RangeError('viewerManagerの領域外エラー');
   } else {
     this.viewElements[index].setVisible();
@@ -304,9 +307,9 @@ ViewElementBuilder.prototype.build = function() {
 };
 
 var vm = undefined;
-function func(directory) {
+function func(directory, page) {
   if (vm === undefined) {
-    vm = new ViewerManager(directory, 'imgview');
+    vm = new ViewerManager(directory, page, 'imgview');
     ipc.send('setDirectory', directory);
     document.addEventListener('keydown', function(e) {
       vm.keydown(e, vm);
@@ -320,14 +323,14 @@ function func(directory) {
   } else {
     vm.destroy();
     vm = undefined;
-    vm = new ViewerManager(directory, 'imgview');
+    vm = new ViewerManager(directory, page, 'imgview');
   }
   vm.display();
   return vm;
 }
-function ImgView(d) {
+function ImgView(d, p) {
   var focusedWindow = browserWindow.getFocusedWindow();
-  if (d === undefined) {
+  if (d === undefined || p === undefined) {
     dialog.showOpenDialog(
         focusedWindow,
         {properties: ['openDirectory']},
@@ -340,24 +343,17 @@ function ImgView(d) {
         }
     );
   } else {
-    func(d);
+    func(d, p);
   }
 }
 function render() {
-  ipc.send('getDirectory', 'ping');
-  ipc.send('getPage', 'ping');
+  ipc.send('getMostRecent', 'ping');
   var dir = '';
   var page = 0;
-  ipc.on('getDirectory-Reply', function(arg) {
-    console.log(arg);
-    dir = arg;
-    if (dir !== '') {
-      ImgView(dir);
-    } else {
-      ImgView();
-    }
-  });
-  ipc.on('getPage-Reply', function(arg) {
+  ipc.on('getMostRecent-Reply', function(_dir, _pg) {
+    dir = _dir;
+    page = Number(_pg);
+    ImgView(dir, page);
   });
 }
 
