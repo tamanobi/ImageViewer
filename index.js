@@ -37,7 +37,8 @@ StatusBar.prototype.draw = function() {
   b.setAttribute('style', styleProperty);
   a.appendChild(b);
   var text = document.createElement('div');
-  text.innerHTML = [current, '/', size].join('');
+  var name = this.vm.getCurrentPageName();
+  text.innerHTML = [current, '/', size, ':', name].join('');
   a.appendChild(text);
 };
 StatusBar.prototype.update = function() {
@@ -85,6 +86,9 @@ function ViewerManager(directory, id) {
   this.statusbar = new StatusBar(this.statusId, this);
   this.statusbar.update();
 }
+ViewerManager.prototype.getCurrentPageName = function() {
+  return this.fileNames[this.currentPosition];
+};
 ViewerManager.prototype.updateStatus = function() {
   this.statusbar.update();
 };
