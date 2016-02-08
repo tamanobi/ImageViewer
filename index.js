@@ -45,6 +45,7 @@ StatusBar.prototype.update = function() {
   this.draw();
 };
 function ViewerManager(directory, page, id) {
+  ipc.send('setDirectory', directory);
   this.statusId = 'status';
   this.id = id;
   this.fileNames = [];
@@ -310,7 +311,6 @@ var vm = undefined;
 function func(directory, page) {
   if (vm === undefined) {
     vm = new ViewerManager(directory, page, 'imgview');
-    ipc.send('setDirectory', directory);
     document.addEventListener('keydown', function(e) {
       vm.keydown(e, vm);
     }, false);
