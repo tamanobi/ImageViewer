@@ -131,6 +131,14 @@ ViewerManager.prototype.goPrev = function() {
   this.prevPage();
   this.updateView();
 };
+ViewerManager.prototype.random = function() {
+  return Math.floor(Math.random() * this.size());
+};
+ViewerManager.prototype.goRandom = function() {
+  this.setAllHidden();
+  this.goPage(this.random());
+  this.updateView();
+};
 ViewerManager.prototype.isInRangeLoaded = function(index) {
   var minIndex = this.currentPosition - this.lazyload;
   var maxIndex = this.currentPosition + this.lazyload;
@@ -174,6 +182,9 @@ ViewerManager.prototype.keydown = function(e, vm) {
   }
   if (e.keyCode === 37) {
     vm.goNext();
+  }
+  if (e.keyCode === 82) {
+    vm.goRandom();
   }
 };
 ViewerManager.prototype.click = function(e, vm) {
