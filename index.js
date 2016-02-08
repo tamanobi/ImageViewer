@@ -16,6 +16,33 @@ function getDirectoryFileNames(pattern, directory) {
   return fileNames;
 }
 
+function StatusBar(id, vm) {
+  this.id = id;
+  this.vm = vm;
+}
+StatusBar.prototype.draw = function() {
+  var a = document.getElementById(this.id);
+  a.setAttribute('style', ['width:', window.innerWidth, 'px'].join(''));
+  while (a.firstChild) {
+    a.removeChild(a.firstChild);
+  }
+  var b = document.createElement('div');
+  b.setAttribute('class', 'indicator');
+  var current = this.vm.getCurrentPage();
+  var size = this.vm.size();
+  var ratio = (1 - current / size);
+  var width = ratio * window.innerWidth;
+  var height = '2px';
+  var styleProperty = ['width:', width, 'px;', 'height:', height, ';', 'background-color:', 'red', ';'].join('');
+  b.setAttribute('style', styleProperty);
+  a.appendChild(b);
+  var text = document.createElement('div');
+  text.innerHTML = [current, '/', size].join('');
+  a.appendChild(text);
+};
+StatusBar.prototype.update = function() {
+  this.draw();
+};
 function ViewerManager(directory, id) {
   this.statusId = 'status';
   this.id = id;
@@ -51,27 +78,16 @@ function ViewerManager(directory, id) {
       this.loadViewElement(this.currentPosition - i);
     }
   };
-  this.updateStatus = function() {
-    var a = document.getElementById(this.statusId);
-    a.setAttribute('style', ['width:', window.innerWidth, 'px'].join(''));
-    while (a.firstChild) {
-      a.removeChild(a.firstChild);
-    }
-    var b = document.createElement('div');
-    b.setAttribute('class', 'indicator');
-    var ratio = (1 - this.currentPosition / this.viewElements.length);
-    var width = ratio * window.innerWidth;
-    var height = '2px';
-    var styleProperty = ['width:', width, 'px;', 'height:', height, ';', 'background-color:', 'red', ';'].join('');
-    b.setAttribute('style', styleProperty);
-    a.appendChild(b);
-    var text = document.createElement('div');
-    text.innerHTML = [this.currentPosition, '/', this.viewElements.length].join('');
-    a.appendChild(text);
+  this.getCurrentPage = function() {
+    return this.currentPosition;
   };
   this.load();
-  this.updateStatus();
+  this.statusbar = new StatusBar(this.statusId, this);
+  this.statusbar.update();
 }
+ViewerManager.prototype.updateStatus = function() {
+  this.statusbar.update();
+};
 ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index >= this.viewElements.length) {
     throw new RangeError('viewerManagerの領域外エラー');
@@ -86,7 +102,7 @@ ViewerManager.prototype.setVisibleCurrentPage = function() {
   this.setVisible(this.currentPosition);
 };
 ViewerManager.prototype.size = function() {
-  return this.fileNames.length;
+  return this.viewElements.length;
 };
 ViewerManager.prototype.goPage = function(index) {
   this.currentPosition = this.loopPage(index);
