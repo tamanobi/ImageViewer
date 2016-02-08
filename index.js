@@ -26,15 +26,27 @@ function ViewerManager(directory, id) {
   this.fileNames = getDirectoryFileNames(this.pattern, directory);
   var vmb = new ViewElementBuilder(this.fileNames);
   this.viewElements = vmb.build();
+  this.loopPage = function(index) {
+    if (index < 0) {
+      index += this.viewElements.length;
+    } else if (index >= this.viewElements.length) {
+      index -= this.viewElements.length;
+    }
+    if (isNaN(index)) {
+      index = 0;
+    }
+    return index;
+  };
   this.loadViewElement = function(index) {
+    index = this.loopPage(index);
     if (index >= 0 && index < this.viewElements.length) {
       this.viewElements[index].load();
       this.viewElements[index].touch();
     }
   };
   this.load = function() {
-    ipc.send('setPage', this.currentPosition);
-    for (var i = 0; i < this.lazyload; i++) {
+    this.loadViewElement(this.currentPosition);
+    for (var i = 1; i < this.lazyload; i++) {
       this.loadViewElement(this.currentPosition + i);
       this.loadViewElement(this.currentPosition - i);
     }
@@ -61,7 +73,7 @@ function ViewerManager(directory, id) {
   this.updateStatus();
 }
 ViewerManager.prototype.setVisible = function(index) {
-  if (index < 0 || index > this.size()) {
+  if (index < 0 || index >= this.viewElements.length) {
     throw new RangeError('viewerManagerの領域外エラー');
   } else {
     this.load();
@@ -69,20 +81,33 @@ ViewerManager.prototype.setVisible = function(index) {
     this.updateStatus();
   }
 };
+ViewerManager.prototype.setVisibleCurrentPage = function() {
+  console.log('current', this.currentPosition);
+  this.setVisible(this.currentPosition);
+};
 ViewerManager.prototype.size = function() {
   return this.fileNames.length;
 };
+ViewerManager.prototype.goPage = function(index) {
+  this.currentPosition = this.loopPage(index);
+  ipc.send('setPage', this.currentPosition);
+  return this.currentPosition;
+};
+ViewerManager.prototype.nextPage = function() {
+  return this.goPage(this.currentPosition + 1);
+};
+ViewerManager.prototype.prevPage = function() {
+  return this.goPage(this.currentPosition - 1);
+};
 ViewerManager.prototype.goNext = function() {
   this.setAllHidden();
-  this.currentPosition += 1;
-  this.currentPosition = Math.min(this.size() - 1, this.currentPosition);
-  this.setVisible(this.currentPosition);
+  this.nextPage();
+  this.setVisibleCurrentPage();
 };
 ViewerManager.prototype.goPrev = function() {
   this.setAllHidden();
-  this.currentPosition -= 1;
-  this.currentPosition = Math.max(0, this.currentPosition);
-  this.setVisible(this.currentPosition);
+  this.prevPage();
+  this.setVisibleCurrentPage();
 };
 ViewerManager.prototype.isInRangeLoaded = function(index) {
   var minIndex = this.currentPosition - this.lazyload;
@@ -94,7 +119,7 @@ ViewerManager.prototype.isInRangeLoaded = function(index) {
 };
 ViewerManager.prototype.setAllHidden = function() {
   var _this = this;
-  this.fileNames.forEach(function(item, index) {
+  this.viewElements.forEach(function(item, index) {
     if (_this.isInRangeLoaded(index)) {
       _this.viewElements[index].setInvisible();
     } else {
