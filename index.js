@@ -96,9 +96,7 @@ ViewerManager.prototype.setVisible = function(index) {
   if (index < 0 || index >= this.viewElements.length) {
     throw new RangeError('viewerManagerの領域外エラー');
   } else {
-    this.load();
     this.viewElements[index].setVisible();
-    this.updateStatus();
   }
 };
 ViewerManager.prototype.setVisibleCurrentPage = function() {
@@ -122,12 +120,12 @@ ViewerManager.prototype.prevPage = function() {
 ViewerManager.prototype.goNext = function() {
   this.setAllHidden();
   this.nextPage();
-  this.setVisibleCurrentPage();
+  this.updateView();
 };
 ViewerManager.prototype.goPrev = function() {
   this.setAllHidden();
   this.prevPage();
-  this.setVisibleCurrentPage();
+  this.updateView();
 };
 ViewerManager.prototype.isInRangeLoaded = function(index) {
   var minIndex = this.currentPosition - this.lazyload;
@@ -153,13 +151,18 @@ ViewerManager.prototype.destroy = function() {
     a.removeChild(a.firstChild);
   }
 };
+ViewerManager.prototype.updateView = function() {
+  this.setAllHidden();
+  this.load();
+  this.setVisibleCurrentPage();
+  this.updateStatus();
+};
 ViewerManager.prototype.display = function() {
   var a = document.getElementById(this.id);
   this.viewElements.forEach(function(item) {
     a.appendChild(item.get());
   });
-  this.setAllHidden();
-  this.setVisible(this.currentPosition);
+  this.updateView();
 };
 ViewerManager.prototype.keydown = function(e, vm) {
   if (e.keyCode === 39) {
