@@ -9,3 +9,6 @@
 * png
 * webm
 * gif
+
+## 使い方
+`electron .`
