@@ -5,7 +5,7 @@ var remote = require('remote');
 var dialog = remote.require('dialog');
 var browserWindow = remote.require('browser-window');
 var vm = undefined;
-var ipc = require('ipc');
+const ipc = require('electron').ipcRenderer;
 
 function getDirectoryFileNames(pattern, directory) {
   var fileNames = glob.sync(pattern, {cwd: directory});
@@ -45,7 +45,7 @@ StatusBar.prototype.update = function() {
   this.draw();
 };
 function ViewerManager(directory, page, id) {
-  ipc.send('setDirectory', directory);
+  ipc.send('setDirectory', String(directory));
   this.statusId = 'status';
   this.id = id;
   this.fileNames = [];
@@ -112,7 +112,7 @@ ViewerManager.prototype.size = function() {
 };
 ViewerManager.prototype.goPage = function(index) {
   this.currentPosition = this.loopPage(index);
-  ipc.send('setPage', this.currentPosition);
+  ipc.send('setPage', String(this.currentPosition));
   return this.currentPosition;
 };
 ViewerManager.prototype.nextPage = function() {
@@ -358,13 +358,10 @@ function ImgView(d, p) {
   }
 }
 function render() {
-  ipc.send('getMostRecent', 'ping');
-  var dir = '';
-  var page = 0;
-  ipc.on('getMostRecent-Reply', function(_dir, _pg) {
-    dir = _dir;
-    page = Number(_pg);
-    ImgView(dir, page);
-  });
+  var mostRecent = ipc.sendSync('getMostRecent');
+  if (mostRecent.directory.length == 0 || mostRecent.page < 0) {
+    return false;
+  }
+  ImgView(mostRecent.directory, mostRecent.page);
 }
 

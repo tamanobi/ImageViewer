@@ -3,7 +3,7 @@
 var app = require('app');
 var BrowserWindow = require('browser-window');
 var Menu = require('menu');
-var ipc = require('ipc');
+const ipc = require('electron').ipcMain;
 var fs = require('fs');
 
 require('crash-reporter').start();
@@ -31,7 +31,7 @@ ipc.on('getPage', function(e) {
   e.sender.send('getPage-Reply', String(page));
 });
 ipc.on('getMostRecent', function(e) {
-  e.sender.send('getMostRecent-Reply', directory, String(page));
+  e.returnValue = {directory: directory, page: page};
 });
 
 function openWindow(baseDir) {
