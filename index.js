@@ -360,7 +360,7 @@ function ImgView(d, p) {
 function render() {
   var mostRecent = ipc.sendSync('getMostRecent');
   if (mostRecent.directory.length == 0 || mostRecent.page < 0) {
-    return false;
+    ImgView();
   }
   ImgView(mostRecent.directory, mostRecent.page);
 }
