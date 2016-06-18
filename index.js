@@ -1,6 +1,7 @@
 'use strict';
 
 var glob = require('glob');
+var fs = require('fs');
 var remote = require('remote');
 var dialog = remote.require('dialog');
 var browserWindow = remote.require('browser-window');
@@ -9,10 +10,22 @@ const ipc = require('electron').ipcRenderer;
 
 function getDirectoryFileNames(pattern, directory) {
   var fileNames = glob.sync(pattern, {cwd: directory});
-  fileNames.forEach(function(item, index, array) {
-    array[index] = [directory, '/', unescape(item)].join('');
-    console.log(array[index]);
-  });
+  var fileNames = fs.readdirSync(directory)
+    .map(function(v) {
+        return { name:directory + '/' + v.substr(2),
+          time:fs.statSync(directory + '/' + v).mtime.getTime()
+        };
+    })
+    .sort(function(a, b) { return a.time - b.time; })
+    .map(function(v) { return v.name; });
+//  fileNames.forEach(function(item, index, array) {
+//    console.log(fs.statSync(directory + '/' + item));
+//  });
+//  fileNames.forEach(function(item, index, array) {
+//    array[index] = [directory, '/', unescape(item)].join('');
+//    //console.log(array[index]);
+//  });
+
   return fileNames;
 }
 
