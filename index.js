@@ -1,12 +1,42 @@
 'use strict';
 
+var moment = require('moment');
 var glob = require('glob');
 var fs = require('fs');
 var remote = require('remote');
 var dialog = remote.require('dialog');
 var browserWindow = remote.require('browser-window');
-var vm = undefined;
 const ipc = require('electron').ipcRenderer;
+const sql = require('sql.js');
+const db_file = __dirname +  '/db.sqlite3';
+function toArrayBuffer(buffer) {
+    var ab = new ArrayBuffer(buffer.length);
+    var view = new Uint8Array(ab);
+    for (var i = 0; i < buffer.length; ++i) {
+        view[i] = buffer[i];
+    }
+    return ab;
+}
+function toBuffer(ab) {
+    var buf = new Buffer(ab.byteLength);
+    var view = new Uint8Array(ab);
+    for (var i = 0; i < buf.length; ++i) {
+        buf[i] = view[i];
+    }
+    return buf;
+}
+if (fs.existsSync(db_file)) {
+    var buf = fs.readFileSync(db_file);
+    var db = new sql.Database(buf);
+}else{
+    var db = new sql.Database();
+    db.run('CREATE TABLE history (id integer primary key, filename text not null, page_num integer not null, accessed_at text not null, stay_time integer not null);');
+    fs.writeFileSync(db_file, toBuffer(db.export()));
+}
+
+var vm = undefined;
+var timer = 0;
+var stay = 0;
 
 function getDirectoryFileNames(pattern, directory) {
   var fileNames = glob.sync(pattern, {cwd: directory});
@@ -124,6 +154,10 @@ ViewerManager.prototype.size = function() {
   return this.viewElements.length;
 };
 ViewerManager.prototype.goPage = function(index) {
+  var res = db.run('INSERT INTO history (filename, page_num, accessed_at, stay_time) VALUES (?, ?, ?, ?);', [this.getCurrentPageName(), this.getCurrentPage(), moment().format(), stay]);
+  fs.writeFileSync(db_file, toBuffer(db.export()));
+  clearInterval(timer);
+  stay = 0;
   this.currentPosition = this.loopPage(index);
   ipc.send('setPage', String(this.currentPosition));
   return this.currentPosition;
@@ -253,6 +287,7 @@ ViewElement.prototype.get = function() {
   return this.element;
 };
 ViewElement.prototype.setVisible = function() {
+  timer = setInterval(function() {stay += 10;}, 10);
   this.element.style.display = 'block';
   this.load();
 };
