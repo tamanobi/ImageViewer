@@ -155,6 +155,7 @@ ViewerManager.prototype.size = function() {
 };
 ViewerManager.prototype.goPage = function(index) {
   var res = db.run('INSERT INTO history (filename, page_num, accessed_at, stay_time) VALUES (?, ?, ?, ?);', [this.getCurrentPageName(), this.getCurrentPage(), moment().format(), stay]);
+  // TODO: 毎度dbを保存しないようにする
   fs.writeFileSync(db_file, toBuffer(db.export()));
   clearInterval(timer);
   stay = 0;
@@ -344,6 +345,11 @@ function getSizeFillRect(rectSize, imageAspect) {
 function ViewElementBuilder(names) {
   this.names = names;
 }
+/**
+ * ファイル名の拡張子から、画像か動画か判別する
+ * @param string name ファイル名
+ * @return string img|video
+ */
 ViewElementBuilder.prototype.getTagName = function(name) {
   // ファイル名から適切なタグを選出する
   var images = /\.(png|gif|jpg|jpeg)$/i;
