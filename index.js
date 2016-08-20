@@ -257,7 +257,15 @@ function ViewElement(tagname, src, index) {
 }
 ViewElement.prototype.load = function() {
   if (this.loading === false) {
-    this.element.setAttribute('src', this.src);
+    if (this.tagname === 'img') {
+      var _this = this;
+      fs.readFile(this.src, function(err, data){
+        console.log('ファイル読み出し成功');
+        _this.element.setAttribute('src', window.URL.createObjectURL(new Blob([data])));
+      });
+    } else {
+        this.element.setAttribute('src', this.src);
+    }
     this.touch();
     this.loading = true;
   }
