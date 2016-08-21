@@ -33,6 +33,9 @@ ipc.on('getPage', function(e) {
 ipc.on('getMostRecent', function(e) {
   e.returnValue = {directory: directory, page: page};
 });
+ipc.on('getDB-reply', function(e) {
+  console.log('ok');
+});
 
 function openWindow(baseDir) {
   // ブラウザ(Chromium)の起動, 初期画面のロード
@@ -59,6 +62,17 @@ var template = [
             }
           });
           app.quit();
+        }
+      }
+    ]
+  },
+  {
+    label: 'DB',
+    submenu: [
+      {
+        label: 'DB',
+        click: function(item, focusedWindow) {
+            focusedWindow.webContents.send('getDB');
         }
       }
     ]

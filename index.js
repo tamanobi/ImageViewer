@@ -40,21 +40,15 @@ var stay = 0;
 
 function getDirectoryFileNames(pattern, directory) {
   var fileNames = glob.sync(pattern, {cwd: directory});
-  var fileNames = fs.readdirSync(directory)
-    .map(function(v) {
-        return { name:directory + '/' + v.substr(2),
-          time:fs.statSync(directory + '/' + v).mtime.getTime()
+  fileNames = fileNames.map(function(v) {
+        return {
+          name: directory + '/' + v,
+          time: fs.statSync(directory + '/' + v).mtime.getTime()
         };
     })
     .sort(function(a, b) { return a.time - b.time; })
     .map(function(v) { return v.name; });
-//  fileNames.forEach(function(item, index, array) {
-//    console.log(fs.statSync(directory + '/' + item));
-//  });
-//  fileNames.forEach(function(item, index, array) {
-//    array[index] = [directory, '/', unescape(item)].join('');
-//    //console.log(array[index]);
-//  });
+  console.log(fileNames);
 
   return fileNames;
 }
@@ -260,7 +254,7 @@ ViewElement.prototype.load = function() {
     if (this.tagname === 'img') {
       var _this = this;
       fs.readFile(this.src, function(err, data){
-        console.log('ファイル読み出し成功');
+        if (err) {console.log(err);}
         _this.element.setAttribute('src', window.URL.createObjectURL(new Blob([data])));
       });
     } else {
@@ -364,9 +358,10 @@ ViewElementBuilder.prototype.getTagName = function(name) {
   var video = /\.(webm|mp4)$/i;
   if (name.match(images)) {
     return 'img';
-  }
-  if (name.match(video)) {
+  } else if(name.match(video)) {
     return 'video';
+  } else {
+    return undefined;
   }
 };
 ViewElementBuilder.prototype.build = function() {
@@ -374,8 +369,8 @@ ViewElementBuilder.prototype.build = function() {
   var elements = [];
   this.names.forEach(function(item, index) {
     var tagname = _this.getTagName(item);
-    var vm = new ViewElement(tagname, item, index);
-    elements.push(vm);
+    var ve = new ViewElement(tagname, item, index);
+    elements.push(ve);
   });
   return elements;
 };
@@ -427,3 +422,6 @@ function render() {
   ImgView(mostRecent.directory, mostRecent.page);
 }
 
+ipc.on('getDB', function(e){
+  e.sender.send('getDB-reply', {DB:db});
+});
